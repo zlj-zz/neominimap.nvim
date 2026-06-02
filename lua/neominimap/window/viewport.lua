@@ -5,18 +5,41 @@ local coord = require("neominimap.map.coord")
 local fold = require("neominimap.map.fold")
 local logger = require("neominimap.logger")
 
+local ns = api.nvim_create_namespace("neominimap_viewport")
+
 ---@class Neominimap.Viewport.Cache
 ---@field w0 integer
 ---@field w_dollar integer
 ---@field sbufnr integer
 ---@field mbufnr integer
 ---@field line_count integer
+---@field m_start_row integer
+---@field m_end_row integer
 
 ---@type table<integer, Neominimap.Viewport.Cache>
 local cache = {}
 
----@type table<integer, integer>
-local match_id_map = {}
+api.nvim_set_decoration_provider(ns, {
+    on_win = function(_, _, _, _, _)
+        -- empty: decoration provider must have on_win to trigger on_line
+    end,
+    on_line = function(_, winid, bufnr, row)
+        local vp = cache[winid]
+        if not vp then
+            return
+        end
+        if row < vp.m_start_row - 1 or row >= vp.m_end_row then
+            return
+        end
+        api.nvim_buf_set_extmark(bufnr, ns, row, 0, {
+            end_row = row + 1,
+            hl_group = config.viewport.hl_group,
+            hl_mode = "combine",
+            ephemeral = true,
+            priority = config.viewport.priority,
+        })
+    end,
+})
 
 ---@param swinid integer
 ---@param mwinid integer
@@ -64,38 +87,35 @@ M.refresh = function(swinid, mwinid)
 
     logger.log.trace("Refreshing viewport overlay for minimap window %d", mwinid)
 
-    local old_match_id = match_id_map[mwinid]
-    if old_match_id then
-        pcall(vim.fn.matchdelete, old_match_id, mwinid)
-    end
-
     if m_start_row > line_count then
-        cache[mwinid] = { w0 = w0, w_dollar = w_dollar, sbufnr = sbufnr, mbufnr = mbufnr, line_count = line_count }
+        cache[mwinid] = {
+            w0 = w0,
+            w_dollar = w_dollar,
+            sbufnr = sbufnr,
+            mbufnr = mbufnr,
+            line_count = line_count,
+            m_start_row = m_start_row,
+            m_end_row = m_end_row,
+        }
         logger.log.trace("Viewport overlay cleared (out of range) for minimap window %d", mwinid)
         return
     end
 
-    local end_line = math.min(m_end_row, line_count)
-    local pattern = string.format([[\m\%%>%dl\%%<%dl.*]], m_start_row - 1, end_line + 1)
-    local ok, match_id =
-        pcall(vim.fn.matchadd, config.viewport.hl_group, pattern, config.viewport.priority, -1, { window = mwinid })
-    if ok and match_id ~= -1 then
-        match_id_map[mwinid] = match_id
-    else
-        logger.log.warn("Failed to add viewport match for window %d: %s", mwinid, tostring(match_id))
-    end
+    cache[mwinid] = {
+        w0 = w0,
+        w_dollar = w_dollar,
+        sbufnr = sbufnr,
+        mbufnr = mbufnr,
+        line_count = line_count,
+        m_start_row = m_start_row,
+        m_end_row = math.min(m_end_row, line_count),
+    }
 
-    cache[mwinid] = { w0 = w0, w_dollar = w_dollar, sbufnr = sbufnr, mbufnr = mbufnr, line_count = line_count }
     logger.log.trace("Viewport overlay refreshed for minimap window %d", mwinid)
 end
 
 ---@param mwinid integer
 M.clear = function(mwinid)
-    local match_id = match_id_map[mwinid]
-    if match_id then
-        pcall(vim.fn.matchdelete, match_id, mwinid)
-    end
-    match_id_map[mwinid] = nil
     cache[mwinid] = nil
 end
 

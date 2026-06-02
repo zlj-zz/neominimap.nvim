@@ -997,7 +997,7 @@ Checkout the wiki page for more details. [wiki](https://github.com/Isrothy/neomi
 | `NeominimapCursorLineNr`   | To replace `CursorLineNr` in minimaps.     |
 | `NeominimapCursorLineSign` | To replace `CursorLineSign` in minimaps.   |
 | `NeominimapCursorLineFold` | To replace `CursorLineFold` in minimaps.   |
-| `NeominimapViewport`       | Visible source range overlay on the minimap. (float only) |
+| `NeominimapViewport`       | Visible source range overlay on the minimap. Defaults to `Visual`. (float only) |
 
 ### Highlight Groups of Diagnostic Annotations
 

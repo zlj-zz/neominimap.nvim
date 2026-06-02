@@ -937,7 +937,8 @@ HIGHLIGHT GROUPS OF NEOMINIMAP WINDOWS ~
   NeominimapCursorLineFold    To replace CursorLineFold in minimaps.
 
   NeominimapViewport          Visible source range overlay on the
-                              minimap. (float only)
+                              minimap. Defaults to `Visual`.
+                              (float only)
   -----------------------------------------------------------------------
 
 HIGHLIGHT GROUPS OF DIAGNOSTIC ANNOTATIONS ~
